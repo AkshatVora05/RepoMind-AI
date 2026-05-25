@@ -7,8 +7,8 @@ genai.configure(api_key=settings.GEMINI_API_KEY)
 from fastembed import TextEmbedding
 
 # Initialize globally to load into memory instantly (weights are pre-baked into Docker)
-print("Loading FastEmbed model (BAAI/bge-small-en-v1.5)...")
-embedding_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+print("Loading FastEmbed model (sentence-transformers/all-MiniLM-L6-v2)...")
+embedding_model = TextEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 def generate_embeddings(texts: list[str]) -> list[list[float]]:
     """
