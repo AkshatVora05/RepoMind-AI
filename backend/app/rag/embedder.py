@@ -6,10 +6,8 @@ genai.configure(api_key=settings.GEMINI_API_KEY)
 
 from fastembed import TextEmbedding
 
-# Initialize globally to load into memory only once
-# BAAI/bge-small-en-v1.5 outputs 384-dimensional vectors.
-print("Loading FastEmbed model (BAAI/bge-small-en-v1.5)...")
-embedding_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+# We will initialize this lazily so Render doesn't crash during startup
+embedding_model = None
 
 def generate_embeddings(texts: list[str]) -> list[list[float]]:
     """
@@ -17,6 +15,10 @@ def generate_embeddings(texts: list[str]) -> list[list[float]]:
     Runs entirely locally using ONNX Runtime (low RAM).
     Outputs 384-dimensional vectors.
     """
+    global embedding_model
+    if embedding_model is None:
+        print("Loading FastEmbed model lazily (BAAI/bge-small-en-v1.5)...")
+        embedding_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
     if not texts:
         return []
         
