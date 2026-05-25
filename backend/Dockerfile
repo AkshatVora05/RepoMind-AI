@@ -23,6 +23,10 @@ COPY --chown=user requirements.txt .
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy the download script and execute it to bake the model weights into the image
+COPY --chown=user download_model.py .
+RUN python download_model.py
+
 # Copy the rest of the application
 COPY --chown=user . .
 
