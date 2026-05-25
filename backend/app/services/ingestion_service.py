@@ -45,19 +45,29 @@ def process_repository_background(repo_id: str, url: str, db: Session):
             
             vectors_to_upsert.append((vector_id, embeddings[i], metadata))
             
-        # 5. Upsert to Pinecone in batches to avoid payload size limits
-        print(f"[{repo_id}] Uploading to Pinecone...")
-        index = get_pinecone_index()
-        batch_size = 100
-        for i in range(0, len(vectors_to_upsert), batch_size):
-            batch = vectors_to_upsert[i:i + batch_size]
-            index.upsert(vectors=batch)
+        # 5 & 6. Run Pinecone Upserts and LLM Insights Generation concurrently!
+        print(f"[{repo_id}] Starting concurrent Pinecone upload and LLM generation...")
+        
+        def upsert_to_pinecone():
+            index = get_pinecone_index()
+            batch_size = 100
+            for i in range(0, len(vectors_to_upsert), batch_size):
+                batch = vectors_to_upsert[i:i + batch_size]
+                index.upsert(vectors=batch)
+            print(f"[{repo_id}] Pinecone upload complete.")
+
+        def generate_insights():
+            sample_context = "\n\n".join([c["text"] for c in chunks_data[:15]])
+            return generate_repo_insights(sample_context)
+
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            future_pinecone = executor.submit(upsert_to_pinecone)
+            future_insights = executor.submit(generate_insights)
             
-        # 6. Generate Insights (Architecture & Roadmap)
-        # We grab the first few chunks (e.g. README) to give the LLM context
-        print(f"[{repo_id}] Generating insights...")
-        sample_context = "\n\n".join([c["text"] for c in chunks_data[:15]])
-        arch_summary, roadmap = generate_repo_insights(sample_context)
+            # Wait for both to complete and catch any exceptions
+            future_pinecone.result() 
+            arch_summary, roadmap = future_insights.result()
         
         # 7. Mark as COMPLETED and save insights
         crud.update_repo_status(

@@ -22,7 +22,7 @@ def query_repository(repo_id: str, query: str) -> Dict:
     index = get_pinecone_index()
     search_response = index.query(
         vector=query_embedding,
-        top_k=5,
+        top_k=3,
         filter={"repo_id": {"$eq": repo_id}},
         include_metadata=True
     )
