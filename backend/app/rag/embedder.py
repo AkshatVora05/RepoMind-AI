@@ -4,17 +4,26 @@ from typing import List
 
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
+from fastembed import TextEmbedding
+
+# Initialize globally to load into memory only once
+# BAAI/bge-small-en-v1.5 outputs 384-dimensional vectors.
+print("Loading FastEmbed model (BAAI/bge-small-en-v1.5)...")
+embedding_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+
 def generate_embeddings(texts: list[str]) -> list[list[float]]:
     """
-    Generates embeddings using the Gemini API.
-    This runs entirely in the cloud and uses 0 RAM locally.
-    Outputs 768-dimensional vectors.
+    Generates embeddings using the fastembed library.
+    Runs entirely locally using ONNX Runtime (low RAM).
+    Outputs 384-dimensional vectors.
     """
-    # Fallback to the working gemini-embedding-2 model and force 768 dimensions for Pinecone
-    result = genai.embed_content(
-        model="models/gemini-embedding-2",
-        content=texts,
-        task_type="retrieval_document",
-        output_dimensionality=768
-    )
-    return result['embedding']
+    if not texts:
+        return []
+        
+    # fastembed.embed returns a generator of numpy arrays
+    embeddings_gen = embedding_model.embed(texts)
+    
+    # Convert numpy arrays to lists of floats
+    all_embeddings = [vector.tolist() for vector in embeddings_gen]
+    
+    return all_embeddings

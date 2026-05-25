@@ -8,3 +8,4 @@ pinecone
 requests
 google-generativeai
 python-dotenv
+fastembed
